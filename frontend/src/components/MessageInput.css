@@ -1,0 +1,68 @@
+.nova-message-input {
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  padding: 0.75rem 1rem 0.75rem 1rem;
+  border-top: 1px solid #e0e7ff;
+  gap: 0.5em;
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  box-shadow: 0 -2px 12px rgba(99,102,241,0.07);
+}
+.nova-input-textarea {
+  width: 100%;
+  min-height: 2.2em;
+  max-height: 6em;
+  resize: none;
+  border: 1.5px solid #222;
+  color: #222;
+  border-radius: 12px;
+  padding: 0.5em 0.75em;
+  font-size: 1em;
+  font-family: inherit;
+  outline: none;
+  transition: border 0.2s, box-shadow 0.2s;
+  background: #f7f7fa;
+  caret-color: #6366f1;
+}
+.nova-input-textarea:focus {
+  border: 2px solid #6366f1;
+  box-shadow: 0 0 0 2px #6366f133;
+  background: #fff;
+  color: #222;
+}
+.nova-input-textarea::placeholder {
+  color: #666;
+  opacity: 1;
+}
+.nova-quoted-preview, .nova-quoted-text {
+  color: #222;
+  background: #f0f0f0;
+}
+.nova-send-btn {
+  align-self: flex-end;
+  background: linear-gradient(135deg, #6366f1 60%, #a5b4fc 100%);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  padding: 0.5em 1.5em;
+  font-size: 1.1em;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 0.2em;
+  transition: background 0.2s, transform 0.1s;
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  box-shadow: 0 1px 4px rgba(99,102,241,0.08);
+}
+.nova-send-btn:disabled {
+  background: #bdbdbd;
+  cursor: not-allowed;
+  color: #fff;
+}
+.nova-send-btn:not(:disabled):hover {
+  background: linear-gradient(135deg, #4f46e5 60%, #6366f1 100%);
+  transform: translateY(-2px) scale(1.04);
+} 

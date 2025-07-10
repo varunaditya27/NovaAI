@@ -1,0 +1,71 @@
+.nova-message-bubble {
+  max-width: 78%;
+  padding: 0.85rem 1.1rem;
+  border-radius: 18px;
+  margin-bottom: 0.5rem;
+  position: relative;
+  font-size: 1.04rem;
+  box-shadow: 0 1.5px 8px rgba(99,102,241,0.07);
+  word-break: break-word;
+  display: flex;
+  align-items: flex-end;
+  gap: 0.7em;
+  opacity: 0;
+  animation: nova-bubble-in 0.35s cubic-bezier(.4,0,.2,1) forwards;
+}
+@keyframes nova-bubble-in {
+  from { opacity: 0; transform: translateY(16px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+.nova-message-bubble.user {
+  align-self: flex-end;
+  background: linear-gradient(135deg, #4ade80 60%, #a7f3d0 100%);
+  color: #1e293b;
+  flex-direction: row-reverse;
+}
+.nova-message-bubble.nova {
+  align-self: flex-start;
+  background: linear-gradient(135deg, #6366f1 60%, #a5b4fc 100%);
+  color: #fff;
+}
+.nova-bubble-avatar {
+  width: 2em;
+  height: 2em;
+  border-radius: 50%;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1em;
+  box-shadow: 0 1px 4px rgba(99,102,241,0.08);
+  margin-bottom: 0.2em;
+}
+.nova-message-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8em;
+  color: #c7d2fe;
+  margin-top: 0.25rem;
+}
+.nova-message-bubble.user .nova-message-meta {
+  color: #047857;
+}
+.nova-message-time {
+  font-variant-numeric: tabular-nums;
+}
+.nova-quote-btn {
+  background: none;
+  border: none;
+  color: #c7d2fe;
+  cursor: pointer;
+  font-size: 1.1em;
+  padding: 0 0.2em;
+  transition: color 0.2s;
+}
+.nova-message-bubble.user .nova-quote-btn {
+  color: #047857;
+}
+.nova-quote-btn:hover {
+  color: #4ade80;
+} 

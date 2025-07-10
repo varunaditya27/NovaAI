@@ -1,0 +1,47 @@
+.nova-quoted-reply, .nova-quoted-preview {
+  display: flex;
+  align-items: center;
+  background: #f0f0f0;
+  border-left: 4px solid #4caf50;
+  padding: 0.25em 0.5em;
+  margin-bottom: 0.3em;
+  border-radius: 8px;
+  font-size: 0.95em;
+  color: #333;
+}
+.nova-quoted-bar {
+  width: 4px;
+  height: 1.2em;
+  background: #4caf50;
+  margin-right: 0.5em;
+  border-radius: 2px;
+}
+.nova-quoted-text {
+  flex: 1;
+  color: #333;
+}
+.nova-cancel-quote {
+  background: none;
+  border: none;
+  color: #888;
+  margin-left: 0.5em;
+  font-size: 1.1em;
+  cursor: pointer;
+}
+.nova-cancel-quote:hover {
+  color: #e53935;
+}
+.nova-quoted-reply.clickable:hover, .nova-quoted-reply.clickable:focus {
+  background: #e0f7fa;
+  outline: 2px solid #4caf50;
+}
+.nova-highlight {
+  animation: nova-highlight-fade 1.2s;
+  background: #fffde7 !important;
+  outline: 2px solid #ffeb3b;
+}
+@keyframes nova-highlight-fade {
+  0% { background: #fffde7; }
+  80% { background: #fffde7; }
+  100% { background: inherit; }
+} 
