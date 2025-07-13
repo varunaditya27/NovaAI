@@ -4,7 +4,10 @@ import MessageInput from './MessageInput';
 import TypingIndicator from './TypingIndicator';
 import SummarySidebar from './SummarySidebar';
 import './Chat.css';
-import { getMessages, postMessage, getSummaries, generateSummary, createSession } from '../api';
+import { getMessages, getSummaries, generateSummary, createSession, sendChatMessageStream } from '../api';
+
+const CHAT_HISTORY_KEY = 'nova_chat_history';
+const SESSION_TIMEOUT_MINUTES = 30; // Example: 30 minutes
 
 function getSessionIdFromStorage() {
   return localStorage.getItem('nova_session_id');
@@ -12,56 +15,52 @@ function getSessionIdFromStorage() {
 function setSessionIdToStorage(id) {
   localStorage.setItem('nova_session_id', id);
 }
+function getChatHistoryFromStorage() {
+  const raw = localStorage.getItem(CHAT_HISTORY_KEY);
+  return raw ? JSON.parse(raw) : [];
+}
+function setChatHistoryToStorage(history) {
+  localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(history));
+}
+function clearChatHistory() {
+  localStorage.removeItem(CHAT_HISTORY_KEY);
+}
 
 export default function Chat() {
   const [sessionId, setSessionId] = useState(getSessionIdFromStorage() || null);
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState(getChatHistoryFromStorage());
   const [isTyping, setIsTyping] = useState(false);
   const [quotedMessage, setQuotedMessage] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [summaries, setSummaries] = useState([]);
   const [showSummary, setShowSummary] = useState(false);
   const chatRef = useRef(null);
 
-  // Fetch all messages on mount
+  // On mount, fetch all messages from backend (across all sessions)
   useEffect(() => {
-    async function fetchAllMessages() {
-      setLoading(true);
-      setError(null);
-      try {
-        // Always fetch all messages (across all sessions)
-        const msgs = await getMessages();
-        // Sort messages by timestamp ascending
-        msgs.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+    setLoading(true);
+    getMessages() // No session_id: fetches all messages
+      .then(msgs => {
         setMessages(msgs);
-        // Session logic only for sending messages
-        let sid = getSessionIdFromStorage();
-        if (!sid) {
-          const session = await createSession();
-          sid = session.session_id;
-          setSessionIdToStorage(sid);
-          setSessionId(sid);
-        } else {
-          setSessionId(sid);
-        }
+        setChatHistoryToStorage(msgs);
         setLoading(false);
-      } catch (e) {
+      })
+      .catch(e => {
         setError('Failed to load messages.');
         setLoading(false);
-      }
+      });
+    let sid = getSessionIdFromStorage();
+    if (!sid) {
+      createSession().then(session => {
+        sid = session.session_id;
+        setSessionIdToStorage(sid);
+        setSessionId(sid);
+      });
+    } else {
+      setSessionId(sid);
     }
-    fetchAllMessages();
-    // eslint-disable-next-line
   }, []);
-
-  // Fetch summaries for the session
-  useEffect(() => {
-    if (!sessionId) return;
-    getSummaries(sessionId)
-      .then(setSummaries)
-      .catch(() => setSummaries([]));
-  }, [sessionId]);
 
   // Auto-scroll to bottom on new message
   useEffect(() => {
@@ -74,7 +73,6 @@ export default function Chat() {
   const handleSend = async (text) => {
     if (!text.trim()) return;
     let sid = sessionId;
-    // If no sessionId, create a new session first
     if (!sid) {
       try {
         const session = await createSession();
@@ -86,11 +84,14 @@ export default function Chat() {
         return;
       }
     }
+    // Prepare new user message
+    const now = new Date();
     const newMsg = {
       session_id: sid,
       text,
       tags: [],
       mood: 'user',
+      timestamp: now.toISOString(),
       ...(quotedMessage ? {
         quoted_reply_to: quotedMessage.message_id,
         quoted_text: quotedMessage.text,
@@ -98,28 +99,44 @@ export default function Chat() {
     };
     setIsTyping(true);
     setQuotedMessage(null);
-    // Optimistically add user message to chat
-    const tempId = `temp-${Date.now()}`;
-    const optimisticMsg = {
-      ...newMsg,
-      message_id: tempId,
-      timestamp: new Date().toISOString(),
-    };
-    setMessages(prev => [...prev, optimisticMsg]);
+    // Optimistically add user message to chat and localStorage
+    const optimisticMsgs = [...getChatHistoryFromStorage(), newMsg];
+    setMessages(optimisticMsgs);
+    setChatHistoryToStorage(optimisticMsgs);
     try {
-      // /message now returns [userMsg, novaMsg]
-      const msgs = await postMessage(newMsg);
-      // Replace optimistic user message with real one, then add Nova's reply
-      setMessages(prev => [
-        ...prev.filter(m => m.message_id !== tempId),
-        ...msgs
-      ]);
+      // Streaming Groq reply
+      let novaMsg = {
+        session_id: sid,
+        text: '',
+        tags: [],
+        mood: 'nova',
+        timestamp: new Date().toISOString(),
+      };
+      setMessages([...optimisticMsgs, novaMsg]);
+      setChatHistoryToStorage([...optimisticMsgs, novaMsg]);
+      let streamedText = '';
+      for await (const chunk of sendChatMessageStream({
+        user_message: text,
+        local_history: optimisticMsgs,
+        session_id: sid,
+      })) {
+        streamedText += chunk;
+        novaMsg.text = streamedText;
+        setMessages([...optimisticMsgs, { ...novaMsg }]);
+        setChatHistoryToStorage([...optimisticMsgs, { ...novaMsg }]);
+      }
+      // After sending, fetch all messages again to ensure full history is up to date
+      const allMsgs = await getMessages();
+      setMessages(allMsgs);
+      setChatHistoryToStorage(allMsgs);
       setIsTyping(false);
     } catch (e) {
       setError('Failed to send message.');
       setIsTyping(false);
       // Optionally, remove optimistic message on error
-      setMessages(prev => prev.filter(m => m.message_id !== tempId));
+      const filtered = getChatHistoryFromStorage().filter(m => m.timestamp !== newMsg.timestamp);
+      setMessages(filtered);
+      setChatHistoryToStorage(filtered);
     }
   };
 
@@ -136,18 +153,6 @@ export default function Chat() {
     }
   };
 
-  // Generate summary for the session
-  const handleGenerateSummary = async () => {
-    if (!sessionId) return;
-    try {
-      await generateSummary(sessionId);
-      const updated = await getSummaries(sessionId);
-      setSummaries(updated);
-    } catch (e) {
-      setError('Failed to generate summary.');
-    }
-  };
-
   return (
     <div className="nova-chat-container">
       <div className="nova-chat-header">
@@ -155,13 +160,6 @@ export default function Chat() {
         <div className="nova-header-title">NOVA</div>
         <div className="nova-header-status">Online</div>
       </div>
-      <SummarySidebar
-        open={showSummary}
-        onClose={() => setShowSummary(false)}
-        summaries={summaries}
-        onGenerate={handleGenerateSummary}
-        loading={!summaries}
-      />
       <div className="nova-chat-messages" ref={chatRef}>
         <button className="nova-summary-toggle" onClick={() => setShowSummary(s => !s)} aria-label="Show summaries">📝</button>
         {loading ? (
