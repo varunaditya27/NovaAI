@@ -10,6 +10,8 @@ load_dotenv()
 import firebase_admin
 from firebase_admin import credentials, firestore
 
+from datetime import datetime, timezone
+
 # Read credentials path from environment variables
 cred_path = os.environ.get("YOUR_FIREBASE_CREDENTIALS_JSON")
 if not firebase_admin._apps:
@@ -23,10 +25,10 @@ SESSION_TIMEOUT_HOURS = 6
 def get_active_session() -> models.Session:
     sessions_ref = db.collection("sessions").order_by("last_activity", direction=firestore.Query.DESCENDING).limit(1)
     docs = list(sessions_ref.stream())
-    now = datetime.datetime.utcnow()
+    now = datetime.now(timezone.utc)
     if docs:
         session = docs[0].to_dict()
-        last_activity = datetime.datetime.fromisoformat(session["last_activity"])
+        last_activity = datetime.fromisoformat(session["last_activity"])
         if (now - last_activity).total_seconds() < SESSION_TIMEOUT_HOURS * 3600:
             return models.Session(**session)
     # Create new session
@@ -36,11 +38,11 @@ def get_active_session() -> models.Session:
         created_at=now.isoformat(),
         last_activity=now.isoformat(),
     )
-    db.collection("sessions").document(session_id).set(session_obj.dict())
+    db.collection("sessions").document(session_id).set(session_obj.model_dump())
     return session_obj
 
 def update_session_activity(session_id: str):
-    now = datetime.datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     db.collection("sessions").document(session_id).update({"last_activity": now})
 
 # --- Message Logic ---
@@ -58,7 +60,7 @@ def save_message(msg: models.MessageCreate) -> models.Message:
     else:
         session = get_active_session()
         session_id = session.session_id
-    now = datetime.datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     message_id = str(uuid.uuid4())
     message = models.Message(
         message_id=message_id,
@@ -70,7 +72,7 @@ def save_message(msg: models.MessageCreate) -> models.Message:
         tags=msg.tags or [],
         mood=msg.mood or "user",
     )
-    db.collection("messages").document(message_id).set(message.dict())
+    db.collection("messages").document(message_id).set(message.model_dump())
     update_session_activity(session_id)
     return message
 
@@ -83,4 +85,17 @@ def get_summaries(session_id: Optional[str] = None) -> List[models.SessionSummar
     return [models.SessionSummary(**doc.to_dict()) for doc in summaries_ref.stream()]
 
 def save_summary(summary: models.SessionSummary):
-    db.collection("summaries").add(summary.dict()) 
+    db.collection("summaries").add(summary.model_dump())
+
+def save_thread(thread: models.Thread):
+    db.collection("threads").document(thread.thread_id).set(thread.model_dump())
+
+
+def get_threads_by_topic(topic: str):
+    threads_ref = db.collection("threads").where("topic", "==", topic)
+    return [models.Thread(**doc.to_dict()) for doc in threads_ref.stream()]
+
+
+def get_all_threads():
+    threads_ref = db.collection("threads")
+    return [models.Thread(**doc.to_dict()) for doc in threads_ref.stream()] 
