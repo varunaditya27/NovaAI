@@ -43,4 +43,45 @@ export async function createSession() {
   });
   if (!res.ok) throw new Error('Failed to create session');
   return await res.json();
+}
+
+export async function sendChatMessage({ user_message, local_history, session_id, topic }) {
+  const res = await fetch(`${API_BASE}/chat`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ user_message, local_history, session_id, topic }),
+  });
+  if (!res.ok) throw new Error('Failed to send chat message');
+  return await res.json();
+}
+
+export async function* sendChatMessageStream({ user_message, local_history, session_id, topic }) {
+  const res = await fetch(`${API_BASE}/chat/stream`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ user_message, local_history, session_id, topic }),
+  });
+  if (!res.ok) throw new Error('Failed to send chat message');
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let done = false;
+  let buffer = '';
+  while (!done) {
+    const { value, done: doneReading } = await reader.read();
+    done = doneReading;
+    if (value) {
+      buffer = decoder.decode(value, { stream: true });
+      yield buffer;
+    }
+  }
+}
+
+export async function getGeminiContext(session_id, topic) {
+  const res = await fetch(`${API_BASE}/gemini/context`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ session_id, topic }),
+  });
+  if (!res.ok) throw new Error('Failed to fetch Gemini context');
+  return await res.json();
 } 

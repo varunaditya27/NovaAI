@@ -29,3 +29,10 @@ class SessionSummary(BaseModel):
     timestamp: str
     topics: List[str]
     session_id: str 
+
+class Thread(BaseModel):
+    thread_id: str
+    topic: str
+    messages: List[Message]
+    created_at: str
+    updated_at: str 

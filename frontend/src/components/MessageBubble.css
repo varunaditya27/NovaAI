@@ -1,42 +1,51 @@
 .nova-message-bubble {
   max-width: 78%;
-  padding: 0.85rem 1.1rem;
-  border-radius: 18px;
-  margin-bottom: 0.5rem;
+  padding: 1.1rem 1.4rem;
+  border-radius: 22px;
+  margin-bottom: 0.7rem;
   position: relative;
-  font-size: 1.04rem;
-  box-shadow: 0 1.5px 8px rgba(99,102,241,0.07);
+  font-size: 1.08rem;
+  box-shadow: 0 2px 16px 0 rgba(99,102,241,0.10), 0 1.5px 8px rgba(24,28,43,0.10);
   word-break: break-word;
   display: flex;
   align-items: flex-end;
   gap: 0.7em;
   opacity: 0;
-  animation: nova-bubble-in 0.35s cubic-bezier(.4,0,.2,1) forwards;
+  animation: nova-bubble-in 0.5s cubic-bezier(.4,0,.2,1) forwards;
+  background: rgba(255,255,255,0.13);
+  border: 1.5px solid rgba(255,255,255,0.18);
+  backdrop-filter: blur(8px) saturate(1.1);
+  transition: box-shadow 0.2s, background 0.2s;
 }
 @keyframes nova-bubble-in {
-  from { opacity: 0; transform: translateY(16px) scale(0.98); }
+  from { opacity: 0; transform: translateY(24px) scale(0.96); }
+  60% { opacity: 1; transform: translateY(-6px) scale(1.04); }
   to { opacity: 1; transform: none; }
 }
 .nova-message-bubble.user {
   align-self: flex-end;
-  background: linear-gradient(135deg, #4ade80 60%, #a7f3d0 100%);
+  background: linear-gradient(135deg, var(--color-accent) 60%, var(--color-user) 100%);
   color: #1e293b;
   flex-direction: row-reverse;
+  border: 1.5px solid var(--color-accent);
+  box-shadow: 0 2px 16px 0 var(--color-accent), 0 1.5px 8px rgba(24,28,43,0.10);
 }
 .nova-message-bubble.nova {
   align-self: flex-start;
-  background: linear-gradient(135deg, #6366f1 60%, #a5b4fc 100%);
+  background: linear-gradient(135deg, var(--color-primary) 60%, var(--color-nova) 100%);
   color: #fff;
+  border: 1.5px solid var(--color-primary);
+  box-shadow: 0 2px 16px 0 var(--color-primary), 0 1.5px 8px rgba(24,28,43,0.10);
 }
 .nova-bubble-avatar {
-  width: 2em;
-  height: 2em;
+  width: 2.2em;
+  height: 2.2em;
   border-radius: 50%;
-  background: #fff;
+  background: #fff8;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.1em;
+  font-size: 1.2em;
   box-shadow: 0 1px 4px rgba(99,102,241,0.08);
   margin-bottom: 0.2em;
 }
@@ -44,7 +53,7 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 0.8em;
+  font-size: 0.85em;
   color: #c7d2fe;
   margin-top: 0.25rem;
 }
@@ -67,5 +76,5 @@
   color: #047857;
 }
 .nova-quote-btn:hover {
-  color: #4ade80;
+  color: var(--color-accent);
 } 

@@ -1,16 +1,30 @@
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  --color-bg: #181c2b;
+  --color-bg-glass: rgba(24,28,43,0.7);
+  --color-primary: #6366f1;
+  --color-accent: #4ade80;
+  --color-user: #a7f3d0;
+  --color-nova: #a5b4fc;
+  --color-header: rgba(99,102,241,0.13);
+  --color-sidebar-bg: rgba(255,255,255,0.15);
+  --color-sidebar-blur: blur(16px);
+  font-family: 'Inter', 'Poppins', system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
-
   color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
+  color: #fff;
+  background: linear-gradient(120deg, #181c2b 0%, #6366f1 60%, #4ade80 100%);
+  background-size: 200% 200%;
+  animation: nova-bg-move 12s ease-in-out infinite;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+@keyframes nova-bg-move {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }
 
 a {
@@ -24,10 +38,9 @@ a:hover {
 
 body {
   margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
+  min-width: 100vw;
   min-height: 100vh;
+  background: none;
 }
 
 h1 {
