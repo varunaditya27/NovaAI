@@ -1,3 +1,49 @@
+def gemini_analyze_session_topics(session_id: str):
+    """
+    After a session break, cluster messages by topic, summarize each topic, and upsert to Firestore /topics/{topic}.
+    """
+    messages = firebase.get_messages(session_id=session_id)
+    if not messages:
+        return []
+    # Cluster messages by topic using Gemini
+    clusters = cluster_messages_by_topic_gemini(messages)
+    now = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    for cluster in clusters:
+        if not cluster:
+            continue
+        # Compose topic-specific chat text
+        chat_text = "\n".join([
+            f"User: {m.text}" if getattr(m, 'mood', 'user') == 'user' else f"Nova: {m.text}" for m in cluster
+        ])
+        # Ask Gemini for topic and summary for this cluster
+        prompt = (
+            "You are a memory agent for a chat system.\n"
+            "Given the following conversation,\n"
+            "1. Identify the main topic as a lowercase string.\n"
+            "2. Summarize the discussion as bullet points.\n"
+            "Respond in strict JSON as: {\"topic\": \"...\", \"summary\": [\"...\"]} \n"
+            f"Chat:\n{chat_text}"
+        )
+        try:
+            genai.configure(api_key=GEMINI_API_KEY)
+            model = genai.GenerativeModel(GEMINI_MODEL)
+            response = model.generate_content(prompt)
+            gemini_text = response.text.strip()
+            parsed = json.loads(gemini_text)
+            topic = parsed.get("topic")
+            summary = parsed.get("summary")
+            message_ids = [m.message_id for m in cluster if hasattr(m, 'message_id')]
+            if topic and summary:
+                firebase.upsert_topic_session_summary(
+                    topic=topic,
+                    session_id=session_id,
+                    summary=summary,
+                    timestamp=now,
+                    message_ids=message_ids
+                )
+        except Exception as e:
+            print(f"Gemini topic clustering error: {e}")
+    return True
 from backend import models, firebase
 import datetime
 import os
