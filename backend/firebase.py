@@ -1,4 +1,3 @@
-
 from backend import models
 from typing import List, Optional
 import uuid
@@ -6,11 +5,40 @@ import os
 import logging
 from dotenv import load_dotenv
 from datetime import datetime, timezone
+import firebase_admin
+from firebase_admin import credentials, firestore
 
 load_dotenv()
 
-import firebase_admin
-from firebase_admin import credentials, firestore
+# --- Topic Logic ---
+def upsert_topic_session_summary(topic: str, session_id: str, summary: list, timestamp: str, message_ids: list):
+    """
+    Upserts a topic document in /topics/{topic} with a new session summary.
+    If the topic exists, appends to the sessions array. If not, creates it.
+    Each session summary includes session_id, summary, timestamp, message_ids.
+    """
+    topic_ref = db.collection("topics").document(topic)
+    doc = topic_ref.get()
+    session_obj = {
+        "session_id": session_id,
+        "summary": summary,
+        "timestamp": timestamp,
+        "message_ids": message_ids or [],
+    }
+    if doc.exists:
+        data = doc.to_dict()
+        sessions = data.get("sessions", [])
+        # Prevent duplicate session summaries
+        if not any(s["session_id"] == session_id for s in sessions):
+            sessions.append(session_obj)
+            topic_ref.update({"sessions": sessions})
+            logger.info(f"Appended session summary to topic '{topic}' for session {session_id}")
+    else:
+        topic_ref.set({
+            "topic": topic,
+            "sessions": [session_obj]
+        })
+        logger.info(f"Created topic '{topic}' with first session summary {session_id}")
 
 # --- Logging Setup ---
 logging.basicConfig(level=logging.INFO)
@@ -23,7 +51,7 @@ if not firebase_admin._apps:
     firebase_admin.initialize_app(cred)
 db = firestore.client()
 
-SESSION_TIMEOUT_HOURS = 6
+SESSION_TIMEOUT_HOURS = 2
 
 # --- Session Logic ---
 def get_active_session() -> models.Session:
@@ -43,6 +71,12 @@ def get_active_session() -> models.Session:
             return models.Session(**session)
         else:
             logger.info(f"Session {session['session_id']} expired ({diff_hours:.2f}h since last activity). Creating new session.")
+            # Analyze the just-ended session for topic summaries
+            try:
+                from backend import llm
+                llm.gemini_analyze_session_topics(session["session_id"])
+            except Exception as e:
+                logger.error(f"Failed to analyze session topics for session {session['session_id']}: {e}")
     # Create new session
     session_id = str(uuid.uuid4())
     session_obj = models.Session(
