@@ -1,3 +1,19 @@
+from backend import models, firebase
+import datetime
+import os
+from dotenv import load_dotenv
+import requests
+import google.generativeai as genai
+import json
+load_dotenv()
+
+GROQ_API_KEY = os.environ.get("YOUR_GROQ_API_KEY")
+GEMINI_API_KEY = os.environ.get("YOUR_GEMINI_API_KEY")
+
+# --- Gemini Summarization (using google-generativeai SDK) ---
+# You can switch to 'models/gemini-1.5-pro-latest' for higher quality if desired
+GEMINI_MODEL = 'models/gemini-1.5-flash-latest'
+
 def gemini_analyze_session_topics(session_id: str):
     """
     After a session break, cluster messages by topic, summarize each topic, and upsert to Firestore /topics/{topic}.
@@ -44,21 +60,6 @@ def gemini_analyze_session_topics(session_id: str):
         except Exception as e:
             print(f"Gemini topic clustering error: {e}")
     return True
-from backend import models, firebase
-import datetime
-import os
-from dotenv import load_dotenv
-import requests
-import google.generativeai as genai
-import json
-load_dotenv()
-
-GROQ_API_KEY = os.environ.get("YOUR_GROQ_API_KEY")
-GEMINI_API_KEY = os.environ.get("YOUR_GEMINI_API_KEY")
-
-# --- Gemini Summarization (using google-generativeai SDK) ---
-# You can switch to 'models/gemini-1.5-pro-latest' for higher quality if desired
-GEMINI_MODEL = 'models/gemini-1.5-flash-latest'
 
 def generate_summary(session_id: str) -> models.SessionSummary:
     messages = firebase.get_messages(session_id=session_id)
